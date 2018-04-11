@@ -1,0 +1,42 @@
+1.
+    a)在/usr/lib/systemd/system/docker.service，配置远程访问。主要是在[Service]这个部分，加上下面两个参数
+
+    [plain] view plain copy
+
+    # vim /usr/lib/systemd/system/docker.service
+    [Service]
+    ExecStart=
+    ExecStart=/usr/bin/dockerd -H tcp://0.0.0.0:2375 -H unix://var/run/docker.sock
+
+
+ b)docker重新读取配置文件，重新启动docker服务
+
+    # systemctl daemon-reload
+
+    # systemctl restart docker
+
+ c)查看结果：
+ curl 192.168.0.99:2375/info
+2.关闭虚拟中的防火墙： systemctl stop firewalld.service
+3.打包发布成远程docker镜像
+mvn package docker:build
+4.去虚拟机查看镜像是否成功
+    docker images
+
+ 5.根据镜像生成容器 启动
+
+   a)没有融入mysql前
+   docker run -d -p 9888:8080 --name demo-docker jiabao/demo-docker
+   b)融入mysql后
+   docker run --name demo-mysql -e MYSQL_ROOT_PASSWORD=password -e MYSQL_DATABASE=demo -e MYSQL_USER=demo_user -e MYSQL_PASSWORD=demo_pass -d mysql:5.6
+   docker run -p 8080:8080 --name demo-docker --link demo-mysql:mysql -d jiabao/demo-docker
+   注意启动时  指定-p端口的话   要求防火墙启动起来，否则报错 systemctl start firewalld
+
+
+6.systemctl daemon-reload
+systemctl restart docker.service
+
+
+
+# 关于tags配置也可在命令行直接设置 待验证
+mvn ... docker:build -DpushImageTags -DdockerImageTag=latest -DdockerImageTag=another-tag
